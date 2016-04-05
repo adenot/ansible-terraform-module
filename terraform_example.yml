@@ -1,0 +1,14 @@
+---
+ - name: Testing terraform module
+   connection: local
+   hosts: all
+   gather_facts: no
+   tasks:
+    - terraform:
+        dir: "/path/to/terraform/stack"
+        action: "apply"
+        vars:
+         var1: "value1"
+      register: tfvars
+
+    - debug: var="{{tfvars.outputs}}"
