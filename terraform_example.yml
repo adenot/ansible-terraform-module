@@ -4,6 +4,14 @@
    hosts: all
    gather_facts: no
    tasks:
+    - terraform_remote_state:
+        dir: "/path/to/terraform/stack"
+        backend: s3
+        backend_config:
+          bucket: "my-s3-bucket"
+          key: "path/to/terraform.tfstate"
+          region: ap-southeast-2
+
     - terraform:
         dir: "/path/to/terraform/stack"
         action: "apply"

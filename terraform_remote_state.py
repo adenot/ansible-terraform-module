@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# (c) 2016, Allan Denot <adenot@gmail.com>
+# (c) 2016, John Heller <john@heller.com.au>
 #
 # This file is part of Ansible
 #
@@ -18,6 +18,37 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+DOCUMENTATION = '''
+---
+module: terraform_remote_state
+version_added: "1.0"
+short_description: Configure remote state for terraform
+description:
+     - Configure remote state for terraform
+options:
+  dir:
+    description:
+      - Directory containing the terraform stack
+    required: true
+    default: null
+  terraform_bin:
+    description:
+      - Command to run terraform binary
+    required: false
+    default: 'terraform'
+  backend:
+    description:
+      - Remote state backend type
+    required: true
+    default: null
+    choices: ["artifactory", "atlas", "consul", "etcd", "http", "s3", "swift"]
+  backend_config:
+    description:
+      - a dict of -backend-config parameters for 'terraform remote config'
+    required: true
+    default: null
+author: "John Heller <john@heller.com.au>"
+'''
 import os
 import datetime
 try:
@@ -31,12 +62,13 @@ def main():
     argument_spec.update(dict(
             dir=dict(required=True, default=None),
             terraform_bin=dict(required=False, default="terraform"),
-            vars=dict(type='dict', required=False, default={}),
-            action=dict(required=False, default="apply")
+            backend=dict(required=True, default=None),
+            backend_config=dict(type='dict', required=False, default={})
         )
     )
+
     module = AnsibleModule(
-        argument_spec = argument_spec,
+        argument_spec=argument_spec,
         supports_check_mode=False
     )
 
@@ -52,16 +84,13 @@ def main():
 
     project_dir = module.params.get('dir')
     terraform_bin = module.params.get('terraform_bin')
-    terraform_action = module.params.get('action')
-    vars = module.params.get('vars')
+    backend = module.params.get('backend')
+    backend_config = module.params.get('backend_config')
 
-    if terraform_action == "destroy":
-      terraform_command = "%s destroy -force" % terraform_bin
-    else:
-      terraform_command = "%s %s -input=false" % (terraform_bin, terraform_action)
-
-    for var_key in vars:
-      os.environ["TF_VAR_"+var_key] = vars[var_key]
+    terraform_command = "%s remote config -backend=%s " % (terraform_bin, backend)
+    
+    for key in backend_config:
+        terraform_command = "%s -backend-config=\"%s=%s\"" % (terraform_command, key, backend_config[key])
 
     os.chdir(project_dir)
 
@@ -72,12 +101,8 @@ def main():
     endd = datetime.datetime.now()
     delta = endd - startd
 
-    try:
-        with open('terraform.tfstate') as data_file:    
-            state = json.load(data_file)
-    except:
-        with open('.terraform/terraform.tfstate') as data_file:    
-            state = json.load(data_file)
+    with open('.terraform/terraform.tfstate') as data_file:    
+        state = json.load(data_file)
 
     if out is None:
         out = ''
@@ -92,6 +117,7 @@ def main():
         end      = str(endd),
         delta    = str(delta),
         changed  = True,
+        remote   = state['remote'],
         outputs  = state['modules'][0]['outputs'],
         resources= state['modules'][0]['resources']
     )
