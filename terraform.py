@@ -79,7 +79,7 @@ def main():
             dir=dict(required=True, default=None),
             terraform_bin=dict(required=False, default="terraform"),
             vars=dict(type='dict', required=False, default={}),
-            action=dict(required=False, default="apply")
+            action=dict(required=False, default="apply", choices=['apply', 'destroy'])
         )
     )
     module = AnsibleModule(
@@ -120,10 +120,10 @@ def main():
     delta = endd - startd
 
     try:
-        with open('terraform.tfstate') as data_file:    
+        with open('terraform.tfstate') as data_file:
             state = json.load(data_file)
     except:
-        with open('.terraform/terraform.tfstate') as data_file:    
+        with open('.terraform/terraform.tfstate') as data_file:
             state = json.load(data_file)
 
     if out is None:
