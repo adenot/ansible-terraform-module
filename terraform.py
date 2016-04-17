@@ -18,6 +18,53 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+DOCUMENTATION = '''
+---
+module: terraform
+version_added: "1.9"
+short_description: Create or delete a terraform stack
+description:
+  - Manages Terraform stacks and return state and output variables to Ansible
+options:
+  dir:
+    description:
+      - Directory where terraform configuration files are
+    required: true
+  terraform_bin:
+    description:
+      - Path to terraform binary (example: /usr/bin/terraform)
+    required: false
+    default: "terraform"
+  vars:
+    description:
+      - A list of hashes of all variables for the stack
+    required: false
+    default: {}
+  action:
+    description:
+      - Terraform command to execute. Use "apply" to create or update stack
+        and "destroy" to delete stack.
+    default: "apply"
+    choices: [ "apply", "destroy" ]
+    required: false
+
+author:
+  - Allan Denot (github.com/adenot)
+  - John Heller  <john@heller.com.au>
+'''
+
+EXAMPLES = '''
+# Basic example
+- terraform:
+    dir: "/path/to/terraform/stack"
+    action: "apply"
+    vars:
+     var1: "value1"
+  register: tfvars
+
+- debug: var="{{tfvars.outputs}}"
+'''
+
 import os
 import datetime
 try:
